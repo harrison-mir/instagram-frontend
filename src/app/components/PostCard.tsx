@@ -6,12 +6,14 @@ import { toast } from "sonner";
 import { Heart } from "lucide-react";
 import { useAxios } from "../hooks/useAxios";
 import { useUser } from "../providers/UserProvider";
+import Link from "next/link";
 dayjs.extend(relativeTime);
 
 export const PostCard = ({ post }: { post: Post }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes.length);
   const [totalComments, setTotalComments] = useState(3);
+  const [loading, setLoading] = useState(false);
 
   const axios = useAxios();
 
@@ -38,33 +40,39 @@ export const PostCard = ({ post }: { post: Post }) => {
     }
   };
 
+  const handleLike = async () => {
+    setLoading(true)
+    const response = await axios.post(`/posts/${post._id}/like`);
+    setIsLiked(response.data.isLiked);
+
+    if (response.data.isLiked) {
+      setLikeCount(likeCount + 1);
+    } else {
+      setLikeCount(likeCount - 1);
+    }
+    setLoading(false)
+  };
+
   return (
     <div key={post._id} className="mb-4 border-b py-4">
       <div className="flex justify-between">
-        <div className="font-bold">{post.createdBy.username}</div>
+        <Link href={`/${post.createdBy.username}`}>
+          <div className="font-bold">{post.createdBy.username}</div>
+        </Link>
         <div className="font-bold">{dayjs(post.createdAt).fromNow()}</div>
       </div>
       <img src={post.imageUrl} alt="" />
       <div className="flex">
-        <div
-          className="hover:opacity-60 cursor-pointer"
-          onClick={async () => {
-            const response = await axios.post(`/posts/${post._id}/like`);
-            setIsLiked(response.data.isLiked);
-
-            if (response.data.isLiked) {
-              setLikeCount(likeCount + 1);
-            } else {
-              setLikeCount(likeCount - 1);
-            }
-          }}
-        >
+        <button className="hover:opacity-60 cursor-pointer" onClick={handleLike} disabled={loading}>
           {isLiked ? <Heart fill="red" stroke="red" /> : <Heart />}
-        </div>
+        </button>
       </div>
       <div>{likeCount} likes</div>
       <hr />
-      <b>{post.createdBy.username}</b> {post.description}
+      <Link href={`/${post.createdBy.username}`}>
+        <b>{post.createdBy.username}</b>
+      </Link>{" "}
+      {post.description}
       {comments.slice(0, totalComments).map((comment) => (
         <div key={comment._id}>
           <b>{comment.createdBy.username}: </b>
@@ -82,9 +90,18 @@ export const PostCard = ({ post }: { post: Post }) => {
         </div>
       )}
       <div className="relative">
-        <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a comment" className="w-full resize-none" rows={1} />
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Add a comment"
+          className="w-full resize-none"
+          rows={1}
+        />
         {text.length > 0 && (
-          <div onClick={handleSubmitComment} className="absolute hover:underline cursor-pointer right-0 top-0 font-bold">
+          <div
+            onClick={handleSubmitComment}
+            className="absolute hover:underline cursor-pointer right-0 top-0 font-bold"
+          >
             Post
           </div>
         )}
